@@ -217,11 +217,11 @@
         function extractFileName(url) {
             try {
                 const pathname = new URL(url).pathname;
-                const name = pathname.split('/').pop();
-                return name || 'file';
+                const name = decodeURIComponent(pathname.split('/').pop());
+                if (name && name.includes('.')) return name;
+                return 'file.bin';
             } catch {
-                const parts = url.split('/');
-                return parts[parts.length - 1] || 'file';
+                return 'file.bin';
             }
         }
 
