@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GREEN-API</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface-hover: #222633;
+            --border: #2a2e3d;
+            --text: #e4e6ef;
+            --text-muted: #8b8fa3;
+            --green: #22c55e;
+            --green-dim: #16a34a;
+            --green-glow: rgba(34, 197, 94, 0.15);
+            --red: #ef4444;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2.5rem 1rem;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 960px;
+            width: 100%;
+            align-content: start;
+        }
+
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.65rem 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]::placeholder { color: var(--text-muted); }
+
+        input[type="text"]:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px var(--green-glow);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            border-color: var(--green);
+            color: var(--green);
+            background: var(--surface-hover);
+        }
+
+        .btn:active { background: var(--bg); }
+        .btn:disabled { opacity: 0.5; cursor: wait; }
+
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.4rem 0;
+        }
+
+        .section-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .right-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .response-label {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--green);
+        }
+
+        .response-box {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 300px;
+        }
+
+        .response-box.has-data { color: var(--text); }
+        .response-box.has-error { color: var(--red); }
+
+        .response-box::-webkit-scrollbar { width: 6px; }
+        .response-box::-webkit-scrollbar-track { background: transparent; }
+        .response-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        @media (max-width: 700px) {
+            .main { grid-template-columns: 1fr; }
+            .response-box { min-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main">
+        <div class="left-col">
+            <div class="section-group">
+                <input type="text" id="idInstance" placeholder="idInstance">
+                <input type="text" id="apiTokenInstance" placeholder="ApiTokenInstance">
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="section-group">
+                <button class="btn" onclick="callGetSettings(this)">getSettings</button>
+                <button class="btn" onclick="callGetStateInstance(this)">getStateInstance</button>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="section-group">
+                <input type="text" id="chatIdMsg" placeholder="Chat ID">
+                <input type="text" id="message" placeholder="Hello World!">
+                <button class="btn" onclick="callSendMessage(this)">sendMessage</button>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="section-group">
+                <input type="text" id="chatIdFile" placeholder="Chat ID">
+                <input type="text" id="urlFile" placeholder="https://my.site.com/img/horse.png">
+                <button class="btn" onclick="callSendFileByUrl(this)">sendFileByUrl</button>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="response-label">Ответ:</div>
+            <div class="response-box" id="responseBox">Ответ метода будет отображён здесь...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://1105.api.green-api.com';
+
+        function getCredentials() {
+            const idInstance = document.getElementById('idInstance').value.trim();
+            const apiToken = document.getElementById('apiTokenInstance').value.trim();
+            if (!idInstance || !apiToken) {
+                alert('Введите idInstance и ApiTokenInstance');
+                return null;
+            }
+            return { idInstance, apiToken };
+        }
+
+        function showResponse(data, isError = false) {
+            const box = document.getElementById('responseBox');
+            box.className = 'response-box';
+            box.classList.add(isError ? 'has-error' : 'has-data');
+            box.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+        }
+
+        function setLoading(btn, loading) {
+            btn.disabled = loading;
+            if (loading) { btn.dataset.origText = btn.textContent; btn.textContent = '...'; }
+            else btn.textContent = btn.dataset.origText;
+        }
+
+        function formatChatId(raw) {
+            return raw.includes('@') ? raw : raw + '@c.us';
+        }
+
+        // Парсим имя файла из URL: https://example.com/img/horse.png -> horse.png
+        function extractFileName(url) {
+            try {
+                const pathname = new URL(url).pathname;
+                const name = pathname.split('/').pop();
+                return name || 'file';
+            } catch {
+                const parts = url.split('/');
+                return parts[parts.length - 1] || 'file';
+            }
+        }
+
+        async function callGetSettings(btn) {
+            const c = getCredentials(); if (!c) return;
+            setLoading(btn, true);
+            try {
+                const res = await fetch(`${API_URL}/waInstance${c.idInstance}/getSettings/${c.apiToken}`);
+                showResponse(await res.json(), !res.ok);
+            } catch (e) { showResponse('Ошибка: ' + e.message, true); }
+            finally { setLoading(btn, false); }
+        }
+
+        async function callGetStateInstance(btn) {
+            const c = getCredentials(); if (!c) return;
+            setLoading(btn, true);
+            try {
+                const res = await fetch(`${API_URL}/waInstance${c.idInstance}/getStateInstance/${c.apiToken}`);
+                showResponse(await res.json(), !res.ok);
+            } catch (e) { showResponse('Ошибка: ' + e.message, true); }
+            finally { setLoading(btn, false); }
+        }
+
+        async function callSendMessage(btn) {
+            const c = getCredentials(); if (!c) return;
+            const chatId = document.getElementById('chatIdMsg').value.trim();
+            const message = document.getElementById('message').value.trim();
+            if (!chatId || !message) { alert('Заполните номер и сообщение'); return; }
+            setLoading(btn, true);
+            try {
+                const res = await fetch(`${API_URL}/waInstance${c.idInstance}/sendMessage/${c.apiToken}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId: formatChatId(chatId), message })
+                });
+                showResponse(await res.json(), !res.ok);
+            } catch (e) { showResponse('Ошибка: ' + e.message, true); }
+            finally { setLoading(btn, false); }
+        }
+
+        async function callSendFileByUrl(btn) {
+            const c = getCredentials(); if (!c) return;
+            const chatId = document.getElementById('chatIdFile').value.trim();
+            const urlFile = document.getElementById('urlFile').value.trim();
+            if (!chatId || !urlFile) { alert('Заполните номер и URL файла'); return; }
+            const fileName = extractFileName(urlFile);
+            setLoading(btn, true);
+            try {
+                const res = await fetch(`${API_URL}/waInstance${c.idInstance}/sendFileByUrl/${c.apiToken}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId: formatChatId(chatId), urlFile, fileName })
+                });
+                showResponse(await res.json(), !res.ok);
+            } catch (e) { showResponse('Ошибка: ' + e.message, true); }
+            finally { setLoading(btn, false); }
+        }
+    </script>
+</body>
+</html>
