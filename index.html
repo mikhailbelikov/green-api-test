@@ -47,7 +47,7 @@
             gap: 0.75rem;
         }
 
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             width: 100%;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -60,8 +60,9 @@
             transition: border-color 0.2s;
         }
 
-        input[type="text"]::placeholder { color: var(--text-muted); }
+        input[type="text"]::placeholder, input[type="password"]::placeholder { color: var(--text-muted); }
 
+        input[type="password"]:focus,
         input[type="text"]:focus {
             border-color: var(--green);
             box-shadow: 0 0 0 3px var(--green-glow);
